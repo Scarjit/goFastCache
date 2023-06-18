@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/goccy/go-json"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/sha256-simd"
 	"go.uber.org/zap"
+	"goFastCache/pkg/hash"
 	"os"
 	"strings"
 )
@@ -83,15 +83,15 @@ func (b *Blobstore) createBucket() error {
 	return nil
 }
 
-func (b *Blobstore) PutString(object string, path string) (info minio.UploadInfo, err error) {
+func (b *Blobstore) putString(object string, path string) (info minio.UploadInfo, err error) {
 	return b.putStream([]byte(object), path, "text/plain")
 }
 
-func (b *Blobstore) PutBytes(object []byte, path string) (info minio.UploadInfo, err error) {
+func (b *Blobstore) putBytes(object []byte, path string) (info minio.UploadInfo, err error) {
 	return b.putStream(object, path, "application/octet-stream")
 }
 
-func (b *Blobstore) PutJSON(object interface{}, path string) (info minio.UploadInfo, err error) {
+func (b *Blobstore) putJSON(object interface{}, path string) (info minio.UploadInfo, err error) {
 	marshalled, err := json.Marshal(object)
 	if err != nil {
 		return minio.UploadInfo{}, err
@@ -111,7 +111,7 @@ func (b *Blobstore) putStream(object []byte, path, contentType string) (info min
 	return b.MinioClient.PutObject(context.Background(), b.BucketName, path, bytes.NewReader(object), int64(len(object)), options)
 }
 
-func (b *Blobstore) GetObject(path string) (object []byte, err error) {
+func (b *Blobstore) getObject(path string) (object []byte, err error) {
 	var objectX *minio.Object
 	objectX, err = b.MinioClient.GetObject(context.Background(), b.BucketName, path, minio.GetObjectOptions{})
 	if err != nil {
@@ -137,8 +137,6 @@ func (b *Blobstore) GetObject(path string) (object []byte, err error) {
 		return nil, errors.New("checksum not found")
 	}
 
-	fmt.Printf("Object: %s\n", object)
-
 	// Calculate the checksum
 	sha256SumCalculated := sha256.Sum256(object)
 	sha256SumCalculatedString := hex.EncodeToString(sha256SumCalculated[:])
@@ -151,6 +149,73 @@ func (b *Blobstore) GetObject(path string) (object []byte, err error) {
 	return object, nil
 }
 
-func (b *Blobstore) RemoveObject(path string) error {
+func (b *Blobstore) removeObject(path string) error {
 	return b.MinioClient.RemoveObject(context.Background(), b.BucketName, path, minio.RemoveObjectOptions{})
+}
+
+func (b *Blobstore) GetInfoObject(domain, user, repo, version string) (object map[string]interface{}, found bool, err error) {
+	path := hash.GetMinioModuleInfoPath(domain, user, repo, version)
+	obj, err := b.getObject(path)
+	// Check if err is not found
+	if err == nil {
+		// Unmarshal the object
+		err = json.Unmarshal(obj, &object)
+		return object, true, err
+	}
+	if strings.Contains(err.Error(), "The specified key does not exist") {
+		return nil, false, nil
+	}
+	return nil, false, err
+}
+
+func (b *Blobstore) PutInfoObject(domain, user, repo, version string, object []byte) error {
+	path := hash.GetMinioModuleInfoPath(domain, user, repo, version)
+	var err error
+	_, err = b.putBytes(object, path)
+	return err
+
+}
+
+func (b *Blobstore) GetModObject(domain, user, repo, version string) (object []byte, found bool, err error) {
+	path := hash.GetMinioGoModPath(domain, user, repo, version)
+	obj, err := b.getObject(path)
+
+	if err == nil {
+		return obj, true, nil
+	}
+
+	if strings.Contains(err.Error(), "The specified key does not exist") {
+		return nil, false, nil
+	}
+
+	return nil, false, err
+}
+
+func (b *Blobstore) PutModObject(domain, user, repo, version string, object []byte) error {
+	path := hash.GetMinioGoModPath(domain, user, repo, version)
+	var err error
+	_, err = b.putBytes(object, path)
+	return err
+}
+
+func (b *Blobstore) GetModuleSourceObject(domain, user, repo, version string) (object []byte, found bool, err error) {
+	path := hash.GetModuleGoSourcesPath(domain, user, repo, version)
+	obj, err := b.getObject(path)
+
+	if err == nil {
+		return obj, true, nil
+	}
+
+	if strings.Contains(err.Error(), "The specified key does not exist") {
+		return nil, false, nil
+	}
+
+	return nil, false, err
+}
+
+func (b *Blobstore) PutModuleSourceObject(domain, user, repo, version string, object []byte) error {
+	path := hash.GetModuleGoSourcesPath(domain, user, repo, version)
+	var err error
+	_, err = b.putBytes(object, path)
+	return err
 }

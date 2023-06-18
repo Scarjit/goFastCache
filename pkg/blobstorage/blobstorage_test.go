@@ -68,21 +68,21 @@ func TestBlobstore_PutObject(t *testing.T) {
 	testData := "test data"
 	var info minio.UploadInfo
 
-	// Test PutString
-	info, err = blobstore.PutString(testData, "testobject/a/b/c/d/PutString.txt")
+	// Test putString
+	info, err = blobstore.putString(testData, "testobject/a/b/c/d/putString.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
 	fmt.Printf("UploadInfo: %+v\n", info)
 
-	// Test PutBytes
-	info, err = blobstore.PutBytes([]byte(testData), "testobject/a/b/c/d/PutBytes.txt")
+	// Test putBytes
+	info, err = blobstore.putBytes([]byte(testData), "testobject/a/b/c/d/putBytes.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
 	fmt.Printf("UploadInfo: %+v\n", info)
 
-	// Test PutJSON
+	// Test putJSON
 	type TestStruct struct {
 		TestString string
 		TestInt    int
@@ -91,7 +91,7 @@ func TestBlobstore_PutObject(t *testing.T) {
 		TestString: "test string",
 		TestInt:    123,
 	}
-	info, err = blobstore.PutJSON(testStruct, "testobject/a/b/c/d/PutJSON.json")
+	info, err = blobstore.putJSON(testStruct, "testobject/a/b/c/d/putJSON.json")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -121,12 +121,12 @@ func TestBlobstore_GetObject(t *testing.T) {
 		t.Fatalf("Error creating blobstore: %v", err)
 	}
 	testData := "test data for get object"
-	path := "testgetobject/a/b/c/d/GetObject.txt"
-	_, err = blobstore.PutString(testData, path)
+	path := "testgetobject/a/b/c/d/getObject.txt"
+	_, err = blobstore.putString(testData, path)
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
-	_, err = blobstore.GetObject(path)
+	_, err = blobstore.getObject(path)
 	if err != nil {
 		t.Fatalf("Error getting object: %v", err)
 	}
@@ -142,16 +142,16 @@ func TestBlobstore_RemoveObject(t *testing.T) {
 		t.Fatalf("Error creating blobstore: %v", err)
 	}
 	testData := "test data for remove object"
-	path := "testremoveobject/a/b/c/d/RemoveObject.txt"
-	_, err = blobstore.PutString(testData, path)
+	path := "testremoveobject/a/b/c/d/removeObject.txt"
+	_, err = blobstore.putString(testData, path)
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
-	err = blobstore.RemoveObject(path)
+	err = blobstore.removeObject(path)
 	if err != nil {
 		t.Fatalf("Error removing object: %v", err)
 	}
-	_, err = blobstore.GetObject(path)
+	_, err = blobstore.getObject(path)
 	if err == nil {
 		t.Fatalf("Object was not removed")
 	}
@@ -170,8 +170,8 @@ func TestBlobstore_NoChecksum(t *testing.T) {
 	testData := "test data"
 	var info minio.UploadInfo
 
-	// Test PutString
-	info, err = blobstore.PutString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
+	// Test putString
+	info, err = blobstore.putString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestBlobstore_NoChecksum(t *testing.T) {
 	}
 
 	// Get the object and check the checksum
-	_, err = blobstore.GetObject("testshaobject/a/b/c/d/PutStringWrongHash.txt")
+	_, err = blobstore.getObject("testshaobject/a/b/c/d/PutStringWrongHash.txt")
 	if err == nil || err.Error() != "checksum not found" {
 		t.Fatalf("Expected 'checksum not found' error")
 	}
@@ -204,8 +204,8 @@ func TestBlobstore_WrongChecksum(t *testing.T) {
 	testData := "test data"
 	var info minio.UploadInfo
 
-	// Test PutString
-	info, err = blobstore.PutString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
+	// Test putString
+	info, err = blobstore.putString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -226,7 +226,7 @@ func TestBlobstore_WrongChecksum(t *testing.T) {
 	}
 
 	// Get the object and check the checksum
-	_, err = blobstore.GetObject("testshaobject/a/b/c/d/PutStringWrongHash.txt")
+	_, err = blobstore.getObject("testshaobject/a/b/c/d/PutStringWrongHash.txt")
 	if err == nil || err.Error() != "checksums do not match" {
 		t.Fatalf("Expected SHA256 mismatch error")
 	}

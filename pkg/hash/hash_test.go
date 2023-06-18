@@ -75,6 +75,6 @@ func BenchmarkXXHash3_128(b *testing.B) {
 }
 
 func TestGetMinioPath(t *testing.T) {
-	path := GetMinioPath(domain, user, repo)
+	path := getMinioPath(domain, user, repo, "v1.0.0")
 	fmt.Printf("path: %s\n", path)
 }
