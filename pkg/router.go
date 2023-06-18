@@ -3,33 +3,62 @@ package main
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"goFastCache/pkg/routes"
+	"regexp"
+	"strings"
 )
 
+var regexModZipInfo = regexp.MustCompile(`(v\d+\.\d+\.\d+(-\w+)?)\.(mod|zip|info)`)
+var regexRepo = regexp.MustCompile(`^/(.+)/@`)
+
 func registerRoutes(router *gin.Engine) {
-	router.GET("/:DOMAIN/:USER/:REPO/@v/list", routes.HandleList)
-	router.GET("/:DOMAIN/:USER/:REPO/@v/:VERSION", VRouter)
-	router.GET("/:DOMAIN/:USER/:REPO/@latest", routes.HandleLatest)
+	router.GET("/:DOMAIN/:USER/*TRAIL", CustomRouter)
 }
 
-func VRouter(c *gin.Context) {
-	// switch on ending of :VERSION
+func CustomRouter(context *gin.Context) {
+	// Get trail from context
+	trail := context.Param("TRAIL")
+	// Get repo from trail
+	repoX := regexRepo.FindStringSubmatch(trail)
+	if len(repoX) == 0 {
+		_ = context.AbortWithError(400, errors.New("invalid path"))
+		return
+	}
+	repo := repoX[1]
 
-	d := c.Param("VERSION")
-
-	if len(d) < 4 {
-		_ = c.AbortWithError(400, errors.New("unknown file type"))
+	if strings.HasSuffix(trail, "@latest") {
+		routes.HandleLatest(context, repo)
+		return
+	} else if strings.HasSuffix(trail, "list") {
+		routes.HandleList(context, repo)
 		return
 	}
 
-	switch d[len(d)-4:] {
-	case ".mod":
-		routes.HandleMod(c)
-	case ".zip":
-		routes.HandleZip(c)
-	case ".info":
-		routes.HandleInfo(c)
+	zap.S().Infof("trail: %s", trail)
+	matches := regexModZipInfo.FindStringSubmatch(trail)
+	if len(matches) == 0 {
+		_ = context.AbortWithError(400, errors.New("invalid path"))
+	} else {
+		version := matches[1]
+		extension := matches[3]
+		VersionRouter(context, version, extension, repo)
+	}
+}
+
+func VersionRouter(c *gin.Context, version, extension, repo string) {
+
+	switch extension {
+	case "mod":
+		routes.HandleMod(c, version, repo)
+		return
+	case "zip":
+		routes.HandleZip(c, version, repo)
+		return
+	case "info":
+		routes.HandleInfo(c, version, repo)
+		return
 	default:
-		_ = c.AbortWithError(400, errors.New("unknown file type: "+d[len(d)-4:]))
+		_ = c.AbortWithError(400, errors.New("unknown file type: "+extension))
 	}
 }
