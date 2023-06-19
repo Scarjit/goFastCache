@@ -53,7 +53,7 @@ func main() {
 
 func initLogger() {
 	var err error
-	logger, err = zap.NewProduction()
+	logger, err = zap.NewDevelopment()
 	if err != nil {
 		fmt.Printf("Can't create logger: %v\n", err)
 		os.Exit(1)

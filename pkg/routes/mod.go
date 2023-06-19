@@ -6,7 +6,7 @@ import (
 	"goFastCache/pkg/upstream"
 )
 
-func HandleMod(c *gin.Context, version string, repo string) {
+func HandleMod(c *gin.Context, version string, repo string, isShortRepo bool) {
 	// Get the cache from the context
 	bX := c.MustGet("blob").(*blobstorage.Blobstore)
 
@@ -25,7 +25,7 @@ func HandleMod(c *gin.Context, version string, repo string) {
 	if !found {
 		// Call upstream
 		var status int
-		mod, err, status = upstream.CallUpstreamMod(domain, user, repo, version)
+		mod, err, status = upstream.CallUpstreamMod(domain, user, repo, version, isShortRepo)
 		if err != nil {
 			_ = c.AbortWithError(500, err)
 			return
