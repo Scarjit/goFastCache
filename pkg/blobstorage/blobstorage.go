@@ -219,3 +219,25 @@ func (b *Blobstore) PutModuleSourceObject(domain, user, repo, version string, ob
 	_, err = b.putBytes(object, path)
 	return err
 }
+
+func (b *Blobstore) GetSumObject(domain, trail string) (object []byte, found bool, err error) {
+	path := hash.GetMinioSumPath(domain, trail)
+	obj, err := b.getObject(path)
+
+	if err == nil {
+		return obj, true, nil
+	}
+
+	if strings.Contains(err.Error(), "The specified key does not exist") {
+		return nil, false, nil
+	}
+
+	return nil, false, err
+}
+
+func (b *Blobstore) PutSumObject(domain, trail string, object []byte) error {
+	path := hash.GetMinioSumPath(domain, trail)
+	var err error
+	_, err = b.putBytes(object, path)
+	return err
+}

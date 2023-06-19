@@ -51,13 +51,11 @@ func HandleInfo(c *gin.Context, version string, repo string) {
 			_ = c.AbortWithError(500, err)
 			return
 		}
-		// Set "source" key
-		info["source"] = "upstream"
+		c.Header("X-From-Cache", "false")
 	} else {
-		// Set "source" key
-		info["source"] = "blob"
+		c.Header("X-From-Cache", "true")
+		c.Header("X-From-Cache-Reason", "blob")
 	}
-
 	// Return the list
 	c.JSON(200, info)
 }

@@ -2,10 +2,15 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/united-manufacturing-hub/expiremap/pkg/expiremap"
 	"go.uber.org/zap"
 	"goFastCache/pkg/cache"
+	"goFastCache/pkg/hash"
 	"goFastCache/pkg/upstream"
+	"time"
 )
+
+var listMap = expiremap.NewEx[string, string](time.Minute, time.Second*30)
 
 func HandleList(c *gin.Context, repo string) {
 	// Get the cache from the context
@@ -14,6 +19,24 @@ func HandleList(c *gin.Context, repo string) {
 	// Get :DOMAIN, :USER, :REPO from the context
 	domain := c.Param("DOMAIN")
 	user := c.Param("USER")
+
+	// Check if is in map
+	var found bool
+	var listX *string
+	listX, found = listMap.Get(string(hash.GetHash(domain, user, repo)))
+	if found {
+		c.Header("X-From-Cache", "true")
+		c.Header("X-From-Cache-Reason", "memory")
+		c.Data(200, "text/plain; charset=utf-8", []byte(*listX))
+		go func() {
+			err := cX.SetList(domain, user, repo, *listX)
+			if err != nil {
+				zap.S().Error(err)
+				return
+			}
+		}()
+		return
+	}
 
 	// Get the list from the cache
 	list, err := cX.GetList(domain, user, repo)
@@ -38,8 +61,15 @@ func HandleList(c *gin.Context, repo string) {
 			return
 		}
 		list = string(upstreamBytes)
+		c.Header("X-From-Cache", "false")
+	} else {
+		c.Header("X-From-Cache", "true")
+		c.Header("X-From-Cache-Reason", "cache")
 	}
 
 	// Return the list
 	c.Data(200, "text/plain; charset=utf-8", []byte(list))
+
+	// Set the list in the map
+	go listMap.Set(string(hash.GetHash(domain, user, repo)), list)
 }

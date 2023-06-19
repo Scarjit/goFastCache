@@ -53,6 +53,10 @@ func GetMinioModuleInfoPath(domain, user, repo, version string) string {
 	return getMinioPath(domain, user, repo, version) + ".info"
 }
 
+func GetMinioSumPath(domain, trail string) string {
+	return hex.EncodeToString(GetHash(domain, "", trail)) + ".sum"
+}
+
 func GetLatestHash(domain, user, repo string) string {
 	return hex.EncodeToString(GetHash(domain, user, repo))
 }
