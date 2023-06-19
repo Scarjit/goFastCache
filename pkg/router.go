@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-var regexModZipInfo = regexp.MustCompile(`(v\d+\.\d+\.\d+(-\w+)?)\.(mod|zip|info)`)
-var regexRepo = regexp.MustCompile(`^/(.+)/@`)
+var regexModZipInfo = regexp.MustCompile(`(v\d+\.\d+\.\d+([-+\w.]*))\.(mod|zip|info)`)
+var regexRepo = regexp.MustCompile(`^/?(.+)/@`)
 
 func registerRoutes(router *gin.Engine) {
 	router.GET("/sumdb/:DOMAIN/*TRAIL", routes.SumDBRouter)
@@ -22,42 +22,44 @@ func CustomRouter(context *gin.Context) {
 	trail := context.Param("TRAIL")
 	// Get repo from trail
 	repoX := regexRepo.FindStringSubmatch(trail)
+	var repo string
+	var isShortRepo bool
 	if len(repoX) == 0 {
-		_ = context.AbortWithError(400, errors.New("invalid path"))
-		return
+		isShortRepo = true
+		repo = "INVALID_INVALID"
+	} else {
+		repo = repoX[1]
 	}
-	repo := repoX[1]
 
 	if strings.HasSuffix(trail, "@latest") {
-		routes.HandleLatest(context, repo)
+		routes.HandleLatest(context, repo, isShortRepo)
 		return
 	} else if strings.HasSuffix(trail, "list") {
-		routes.HandleList(context, repo)
+		routes.HandleList(context, repo, isShortRepo)
 		return
 	}
 
-	zap.S().Infof("trail: %s", trail)
 	matches := regexModZipInfo.FindStringSubmatch(trail)
 	if len(matches) == 0 {
+		zap.S().Errorf("invalid ending (domain: %s, user: %s, trail: %s)", context.Param("DOMAIN"), context.Param("USER"), trail)
 		_ = context.AbortWithError(400, errors.New("invalid path"))
 	} else {
 		version := matches[1]
 		extension := matches[3]
-		VersionRouter(context, version, extension, repo)
+		VersionRouter(context, version, extension, repo, isShortRepo)
 	}
 }
 
-func VersionRouter(c *gin.Context, version, extension, repo string) {
-
+func VersionRouter(c *gin.Context, version, extension, repo string, isShortRepo bool) {
 	switch extension {
 	case "mod":
-		routes.HandleMod(c, version, repo)
+		routes.HandleMod(c, version, repo, isShortRepo)
 		return
 	case "zip":
-		routes.HandleZip(c, version, repo)
+		routes.HandleZip(c, version, repo, isShortRepo)
 		return
 	case "info":
-		routes.HandleInfo(c, version, repo)
+		routes.HandleInfo(c, version, repo, isShortRepo)
 		return
 	default:
 		_ = c.AbortWithError(400, errors.New("unknown file type: "+extension))

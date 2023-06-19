@@ -8,7 +8,7 @@ import (
 	"goFastCache/pkg/upstream"
 )
 
-func HandleInfo(c *gin.Context, version string, repo string) {
+func HandleInfo(c *gin.Context, version string, repo string, isShortRepo bool) {
 	// Get the cache from the context
 	bX := c.MustGet("blob").(*blobstorage.Blobstore)
 
@@ -28,7 +28,7 @@ func HandleInfo(c *gin.Context, version string, repo string) {
 		// Get from upstream
 		var upstreamBytes []byte
 		var status int
-		upstreamBytes, err, status = upstream.CallUpstreamInfo(domain, user, repo, version)
+		upstreamBytes, err, status = upstream.CallUpstreamInfo(domain, user, repo, version, isShortRepo)
 		if err != nil {
 			_ = c.AbortWithError(500, err)
 			return

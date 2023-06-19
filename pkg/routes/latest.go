@@ -10,7 +10,7 @@ import (
 
 var cacheMap = expiremap.NewEx[string, []byte](time.Minute, time.Second*30)
 
-func HandleLatest(c *gin.Context, repo string) {
+func HandleLatest(c *gin.Context, repo string, isShortRepo bool) {
 	// Get :DOMAIN, :USER, :REPO from the context
 	domain := c.Param("DOMAIN")
 	user := c.Param("USER")
@@ -26,7 +26,7 @@ func HandleLatest(c *gin.Context, repo string) {
 	}
 
 	// Get latest version from upstream
-	latestX, err, status := upstream.CallUpstreamLatest(domain, user, repo)
+	latestX, err, status := upstream.CallUpstreamLatest(domain, user, repo, isShortRepo)
 	if err != nil {
 		_ = c.AbortWithError(500, err)
 		return

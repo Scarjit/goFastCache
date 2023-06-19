@@ -12,7 +12,7 @@ import (
 
 var listMap = expiremap.NewEx[string, string](time.Minute, time.Second*30)
 
-func HandleList(c *gin.Context, repo string) {
+func HandleList(c *gin.Context, repo string, isShortRepo bool) {
 	// Get the cache from the context
 	cX := c.MustGet("cache").(*cache.Cache)
 
@@ -43,7 +43,7 @@ func HandleList(c *gin.Context, repo string) {
 	if err != nil {
 		var upstreamBytes []byte
 		var status int
-		upstreamBytes, err, status = upstream.CallUpstreamList(domain, user, repo)
+		upstreamBytes, err, status = upstream.CallUpstreamList(domain, user, repo, isShortRepo)
 		if err != nil {
 			zap.S().Errorf("Error calling upstream: %s", err.Error())
 			_ = c.AbortWithError(500, err)
