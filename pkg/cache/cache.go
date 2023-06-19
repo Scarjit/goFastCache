@@ -8,6 +8,7 @@ import (
 	"goFastCache/pkg/hash"
 	"os"
 	"strings"
+	"time"
 )
 
 type Cache struct {
@@ -43,16 +44,20 @@ func (c *Cache) GetList(domain, user, repo string) (string, error) {
 
 func (c *Cache) SetList(domain, user, repo, list string) error {
 	key := hash.GetHash(domain, user, repo)
-	return c.redis.Set(context.Background(), hex.EncodeToString(key[:]), list, 0).Err()
+	return c.redis.SetArgs(context.Background(), hex.EncodeToString(key[:]), list, redis.SetArgs{
+		ExpireAt: time.Now().Add(time.Minute * 1),
+	}).Err()
 }
 
-func (c *Cache) GetVersionInfo(domain, user, repo, version string) (string, error) {
-	key := hash.GetExtendedHash(domain, user, repo, version)
-	val, err := c.redis.Get(context.Background(), hex.EncodeToString(key[:])).Result()
+func (c *Cache) GetSumObj(domain, trail string) (string, error) {
+	key := hash.GetMinioSumPath(domain, trail)
+	val, err := c.redis.Get(context.Background(), key).Result()
 	return val, err
 }
 
-func (c *Cache) SetVersionInfo(domain, user, repo, version, info string) error {
-	key := hash.GetExtendedHash(domain, user, repo, version)
-	return c.redis.Set(context.Background(), hex.EncodeToString(key[:]), info, 0).Err()
+func (c *Cache) SetSumObj(domain, trail string, sum []byte) error {
+	key := hash.GetMinioSumPath(domain, trail)
+	return c.redis.SetArgs(context.Background(), key, sum, redis.SetArgs{
+		ExpireAt: time.Now().Add(time.Minute * 10),
+	}).Err()
 }

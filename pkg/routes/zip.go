@@ -41,6 +41,10 @@ func HandleZip(c *gin.Context, version string, repo string) {
 			_ = c.AbortWithError(500, err)
 			return
 		}
+		c.Header("X-From-Cache", "false")
+	} else {
+		c.Header("X-From-Cache", "true")
+		c.Header("X-From-Cache-Reason", "blob")
 	}
 
 	// Return the zip

@@ -19,6 +19,8 @@ func HandleLatest(c *gin.Context, repo string) {
 	// Get the list from the cache
 	latest, found := cacheMap.Get(hashX)
 	if found {
+		c.Header("X-From-Cache", "true")
+		c.Header("X-From-Cache-Reason", "memory")
 		c.Data(200, "text/plain; charset=utf-8", *latest)
 		return
 	}
@@ -37,5 +39,6 @@ func HandleLatest(c *gin.Context, repo string) {
 
 	cacheMap.Set(hashX, latestX)
 
+	c.Header("X-From-Cache", "false")
 	c.Data(200, "text/plain; charset=utf-8", latestX)
 }

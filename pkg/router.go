@@ -13,6 +13,7 @@ var regexModZipInfo = regexp.MustCompile(`(v\d+\.\d+\.\d+(-\w+)?)\.(mod|zip|info
 var regexRepo = regexp.MustCompile(`^/(.+)/@`)
 
 func registerRoutes(router *gin.Engine) {
+	router.GET("/sumdb/:DOMAIN/*TRAIL", routes.SumDBRouter)
 	router.GET("/:DOMAIN/:USER/*TRAIL", CustomRouter)
 }
 
