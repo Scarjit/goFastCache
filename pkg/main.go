@@ -2,21 +2,16 @@ package main
 
 import (
 	"fmt"
-	"goFastCache/pkg/blobstorage"
-	"goFastCache/pkg/cache"
-	"os"
-
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-)
-
-var (
-	logger *zap.Logger
+	"goFastCache/pkg/blobstorage"
+	"goFastCache/pkg/cache"
+	"goFastCache/pkg/logger"
 )
 
 func main() {
 	// Initialize logger
-	initLogger()
+	logger.InitLogger()
 
 	// Initialize blob storage
 	blob, err := blobstorage.NewBlobstore()
@@ -52,15 +47,4 @@ func main() {
 
 	// Start server
 	router.Run()
-}
-
-func initLogger() {
-	var err error
-	logger, err = zap.NewDevelopment()
-	if err != nil {
-		fmt.Printf("Can't create logger: %v\n", err)
-		os.Exit(1)
-	}
-	defer logger.Sync()
-	zap.ReplaceGlobals(logger)
 }
