@@ -6,12 +6,16 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
+	"goFastCache/pkg/blobstorage"
+	"goFastCache/pkg/database"
+	"goFastCache/pkg/routes"
 	"net/http"
+	"regexp"
 	"sort"
 	"time"
 )
 
-func GetIndexSince(since time.Time) []Index {
+func getIndexSince(since time.Time) ([]Index, *time.Time) {
 	// https://index.golang.org/index?since=2023-06-20T00:00:00.000000Z
 	// We can only download 2000 packages at a time, so we need to do this in a loop, changing the since param
 
@@ -32,10 +36,10 @@ func GetIndexSince(since time.Time) []Index {
 		zap.S().Errorf("Error downloading index: %v", err)
 	}
 
-	return DedupIndex(indices)
+	return dedupIndex(indices), nextSince
 }
 
-func DedupIndex(indices []Index) []Index {
+func dedupIndex(indices []Index) []Index {
 	indexMap := make(map[string]Index)
 	for _, index := range indices {
 		v, ok := indexMap[index.Path]
@@ -116,4 +120,89 @@ func downloadIndex(since *time.Time) (nextSince *time.Time, indices []Index, err
 	}
 
 	return nextSince, indices, nil
+}
+
+func RefreshIndexInBackground(db *database.Database, blob *blobstorage.Blobstore) {
+	for i := 0; i < 10; i++ {
+		go worker(blob)
+	}
+	go func() {
+		now := time.Now().Add(-1 * time.Hour)
+		for {
+			RefreshIndex(db, now)
+			time.Sleep(1 * time.Hour)
+		}
+	}()
+}
+
+var PathRegex = regexp.MustCompile(`(.+?/)(.+)`)
+
+type workload struct {
+	Domain     string
+	ModuleName string
+	Version    string
+}
+
+var workerChan = make(chan workload, 10)
+
+func RefreshIndex(db *database.Database, refreshStart time.Time) {
+	var indices []Index
+	var nextStart *time.Time
+	indices, nextStart = getIndexSince(refreshStart)
+	if nextStart == nil {
+		nextStart = &refreshStart
+	}
+
+	for _, index := range indices {
+		// Check if m exists in database by path
+		// If it does, check if version is newer
+		m, found, err := db.GetGoModuleByPath(index.Path)
+		if err != nil {
+			zap.S().Errorf("Error getting m by path: %v", err)
+			continue
+		}
+		if !found {
+			continue
+		}
+		// Check if version is newer
+		x, err := semver.NewVersion(index.Version)
+		if err != nil {
+			zap.S().Errorf("Error parsing version: %v", err)
+			continue
+		}
+		y, err := semver.NewVersion(m.Version)
+		if err != nil {
+			zap.S().Errorf("Error parsing version: %v", err)
+			continue
+		}
+		if x.GreaterThan(y) {
+			// Update version
+			m.Version = index.Version
+			err = db.UpsertGoModule(m)
+			if err != nil {
+				zap.S().Errorf("Error updating m: %v", err)
+				continue
+			}
+			// Trigger update of m into blob storage
+			matches := PathRegex.FindStringSubmatch(m.Path)
+			if len(matches) != 3 {
+				zap.S().Errorf("Error parsing m path: %s", m.Path)
+				continue
+			}
+			domain := matches[1]
+			moduleName := matches[2]
+			workerChan <- workload{
+				Domain:     domain,
+				ModuleName: moduleName,
+				Version:    m.Version,
+			}
+		}
+	}
+}
+
+func worker(blob *blobstorage.Blobstore) {
+	for {
+		w := <-workerChan
+		routes.DownloadZip(w.Domain, w.ModuleName, w.Version, blob)
+	}
 }

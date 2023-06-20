@@ -6,6 +6,8 @@ import (
 	"go.uber.org/zap"
 	"goFastCache/pkg/blobstorage"
 	"goFastCache/pkg/cache"
+	"goFastCache/pkg/database"
+	"goFastCache/pkg/index"
 	"goFastCache/pkg/logger"
 )
 
@@ -26,6 +28,12 @@ func main() {
 		zap.S().Fatalf("Unable to connect to Redis: %v", err)
 	}
 
+	// Initialize database
+	db, err := database.NewDatabase()
+	if err != nil {
+		zap.S().Fatalf("Unable to connect to database: %v", err)
+	}
+
 	// Initialize router
 	router := gin.Default()
 
@@ -44,6 +52,8 @@ func main() {
 	router.NoRoute(func(c *gin.Context) {
 		c.String(404, fmt.Sprintf("Route %s not found", c.Request.URL.Path))
 	})
+
+	index.RefreshIndexInBackground(db, blob)
 
 	// Start server
 	router.Run()
