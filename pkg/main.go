@@ -27,6 +27,9 @@ func main() {
 	// Initialize cache
 	var cacheX *cache.Cache
 	cacheX, err = cache.NewCache()
+	if err != nil {
+		zap.S().Fatalf("Unable to connect to Redis: %v", err)
+	}
 
 	// Initialize router
 	router := gin.Default()
