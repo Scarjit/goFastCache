@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
+	"gorm.io/gorm/clause"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -58,21 +59,24 @@ func NewDatabase() (*Database, error) {
 	}, nil
 }
 
-func (db *Database) InsertGomodule(gomodule Gomodule) error {
-	result := db.postgres.Create(&gomodule)
+func (db *Database) UpsertGoModule(gomodule Gomodule) error {
+	result := db.postgres.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "path"}},
+		UpdateAll: true,
+	}).Create(&gomodule)
 	return result.Error
 }
 
-func (db *Database) GetGomoduleByPath(path string) (Gomodule, error) {
+func (db *Database) GetGoModuleByPath(path string) (Gomodule, bool, error) {
 	var gomodule Gomodule
 	result := db.postgres.First(&gomodule, "path = ?", path)
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			return Gomodule{}, nil
+			return Gomodule{}, false, nil
 		}
-		return Gomodule{}, result.Error
+		return Gomodule{}, false, result.Error
 	}
 
-	return gomodule, nil
+	return gomodule, true, nil
 }
