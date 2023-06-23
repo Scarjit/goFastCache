@@ -6,62 +6,95 @@ import (
 	"go.uber.org/zap"
 	"goFastCache/pkg/routes"
 	"regexp"
-	"strings"
 )
 
-var regexModZipInfo = regexp.MustCompile(`(v\d+\.\d+\.\d+([-+\w.]*))\.(mod|zip|info)`)
-var regexRepo = regexp.MustCompile(`^/?(.+)/@`)
-
 func registerRoutes(router *gin.Engine) {
-	router.GET("/sumdb/:DOMAIN/*TRAIL", routes.SumDBRouter)
-	router.GET("/:DOMAIN/:USER/*TRAIL", CustomRouter)
+	router.GET("/*TRAIL", Router)
 }
 
-func CustomRouter(context *gin.Context) {
-	// Get trail from context
-	trail := context.Param("TRAIL")
-	// Get repo from trail
-	repoX := regexRepo.FindStringSubmatch(trail)
-	var repo string
-	var isShortRepo bool
-	if len(repoX) == 0 {
-		isShortRepo = true
-		repo = "INVALID_INVALID"
-	} else {
-		repo = repoX[1]
+var uriRegex = regexp.MustCompile(`^/?([A-Za-z0-9_.\-~/]+)`)
+var uriType = regexp.MustCompile(`(/@v/(.*).(zip|mod|info|list))$|(@latest)$`)
+
+type Type int
+
+const (
+	RAW Type = iota
+	LIST
+	LATEST
+	INFO
+	MOD
+	ZIP
+	SUMDB
+)
+
+func getURIParts(rawUrl string) (uri string, version string, t Type, err error) {
+	// Check if url starts with /sumdb/
+	if rawUrl[:7] == "/sumdb/" {
+		t = SUMDB
+		uri = rawUrl[7:]
+		return
 	}
 
-	if strings.HasSuffix(trail, "@latest") {
-		routes.HandleLatest(context, repo, isShortRepo)
-		return
-	} else if strings.HasSuffix(trail, "list") {
-		routes.HandleList(context, repo, isShortRepo)
+	// This is used to get the uri from the rawUrl
+	matchesUri := uriRegex.FindStringSubmatch(rawUrl)
+	if len(matchesUri) == 0 {
+		err = errors.New("invalid path")
 		return
 	}
+	uri = matchesUri[1]
 
-	matches := regexModZipInfo.FindStringSubmatch(trail)
-	if len(matches) == 0 {
-		zap.S().Errorf("invalid ending (domain: %s, user: %s, trail: %s)", context.Param("DOMAIN"), context.Param("USER"), trail)
-		_ = context.AbortWithError(400, errors.New("invalid path"))
-	} else {
-		version := matches[1]
-		extension := matches[3]
-		VersionRouter(context, version, extension, repo, isShortRepo)
-	}
-}
+	// This is used to get the type from the rawUrl
+	// For zip, mod, info & list group 2 has the version and group 3 has the extension
+	// For latest group 4 is set
 
-func VersionRouter(c *gin.Context, version, extension, repo string, isShortRepo bool) {
-	switch extension {
-	case "mod":
-		routes.HandleMod(c, version, repo, isShortRepo)
+	matchesType := uriType.FindStringSubmatch(rawUrl)
+	if len(matchesType) == 0 {
+		t = RAW
 		return
+	}
+	if matchesType[4] != "" {
+		t = LATEST
+		return
+	}
+	switch matchesType[3] {
 	case "zip":
-		routes.HandleZip(c, version, repo, isShortRepo)
-		return
+		t = ZIP
+	case "mod":
+		t = MOD
 	case "info":
-		routes.HandleInfo(c, version, repo, isShortRepo)
-		return
+		t = INFO
+	case "list":
+		t = LIST
 	default:
-		_ = c.AbortWithError(400, errors.New("unknown file type: "+extension))
+		err = errors.New("invalid path")
+		return
+	}
+	version = matchesType[2]
+	return
+}
+
+func Router(c *gin.Context) {
+	trail := c.Param("TRAIL")
+	uri, version, t, err := getURIParts(trail)
+	if err != nil {
+		return
+	}
+	zap.S().Debugf("URI: %s, Version: %s, Type: %d", uri, version, t)
+	switch t {
+	case RAW:
+		// TODO: Handle raw
+	case LIST:
+		routes.HandleList(c, uri)
+	case LATEST:
+		routes.HandleLatest(c, uri)
+	case INFO:
+		routes.HandleInfo(c, uri, version)
+	case MOD:
+		routes.HandleMod(c, uri, version)
+	case ZIP:
+		routes.HandleZip(c, uri, version)
+	case SUMDB:
+		routes.HandleSumdb(c, uri)
+
 	}
 }

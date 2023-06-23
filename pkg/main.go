@@ -42,6 +42,7 @@ func main() {
 		// c.Set("db", db)
 		c.Set("blob", blob)
 		c.Set("cache", cacheX)
+		c.Set("db", db)
 		c.Next()
 	})
 
