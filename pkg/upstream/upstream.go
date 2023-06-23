@@ -52,52 +52,33 @@ func callProxy(url string, forceUpstream bool) ([]byte, error, int) {
 	return body, nil, get.StatusCode
 }
 
-func CallUpstreamList(domain, user, repo string, isShortRepo bool) ([]byte, error, int) {
-	if isShortRepo {
-		//https://proxy.golang.org/:DOMAIN/:USER/@v/list
-		return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/@v/list", domain, user), false)
-	}
-	//https://proxy.golang.org/:DOMAIN/:USER/:REPO/@v/list
-	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/%s/@v/list", domain, user, repo), false)
+func CallUpstreamList(uri string) ([]byte, error, int) {
+	//https://proxy.golang.org/:URI/@v/list
+	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/@v/list", uri), false)
 
 }
 
-func CallUpstreamInfo(domain, user, repo, version string, isShortRepo bool) ([]byte, error, int) {
-	if isShortRepo {
-		//https://proxy.golang.org/:DOMAIN/:USER/@v/:VERSION.info
-		return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/@v/%s.info", domain, user, version), false)
-	}
-	//https://proxy.golang.org/:DOMAIN/:USER/:REPO/@v/:VERSION.info
-	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/%s/@v/%s.info", domain, user, repo, version), false)
+func CallUpstreamInfo(uri, version string) ([]byte, error, int) {
+	//https://proxy.golang.org/:URI/@v/:VERSION.info
+	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.info", uri, version), false)
 }
 
-func CallUpstreamMod(domain, user, repo, version string, isShortRepo bool) ([]byte, error, int) {
-	if isShortRepo {
-		//https://proxy.golang.org/:DOMAIN/:USER/@v/:VERSION.mod
-		return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/@v/%s.mod", domain, user, version), false)
-	}
-	//https://proxy.golang.org/:DOMAIN/:USER/:REPO/@v/:VERSION.mod
-	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/%s/@v/%s.mod", domain, user, repo, version), false)
+func CallUpstreamMod(uri, version string) ([]byte, error, int) {
+	//https://proxy.golang.org/:URI/@v/:VERSION.mod
+	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.mod", uri, version), false)
 }
-func CallUpstreamModuleSource(domain, user, repo, version string, isShortRepo bool) ([]byte, error, int) {
-	if isShortRepo {
-		//https://proxy.golang.org/:DOMAIN/:USER/@v/:VERSION
-		return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/@v/%s.zip", domain, user, version), false)
-	}
-	//https://proxy.golang.org/:DOMAIN/:USER/:REPO/@v/:VERSION.zip
-	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/%s/@v/%s.zip", domain, user, repo, version), false)
+
+func CallUpstreamZip(uri, version string) ([]byte, error, int) {
+	//https://proxy.golang.org/:URI/@v/:VERSION.zip
+	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.zip", uri, version), false)
 
 }
 
-func CallUpstreamLatest(domain, user, repo string, isShortRepo bool) ([]byte, error, int) {
-	if isShortRepo {
-		//https://proxy.golang.org/:DOMAIN/:USER/@latest
-		return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/@latest", domain, user), false)
-	}
-	//https://proxy.golang.org/:DOMAIN/:USER/:REPO/@latest
-	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/%s/%s/@latest", domain, user, repo), false)
+func CallUpstreamLatest(uri string) ([]byte, error, int) {
+	//https://proxy.golang.org/:URI/@latest
+	return callProxy(fmt.Sprintf("https://proxy.golang.org/%s/@latest", uri), false)
 }
 
-func CallUpstreamSumDB(domain, trail string) ([]byte, error, int) {
-	return callProxy(fmt.Sprintf("https://%s/%s", domain, trail), false)
+func CallUpstreamSumDB(trail string) ([]byte, error, int) {
+	return callProxy(fmt.Sprintf("https://%s/%s", trail), false)
 }

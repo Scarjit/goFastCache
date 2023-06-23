@@ -2,10 +2,8 @@ package cache
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"github.com/redis/go-redis/v9"
-	"goFastCache/pkg/hash"
 	"os"
 	"strings"
 	"time"
@@ -36,28 +34,24 @@ func NewCache() (*Cache, error) {
 	}, nil
 }
 
-func (c *Cache) GetList(domain, user, repo string) (string, error) {
-	key := hash.GetHash(domain, user, repo)
-	val, err := c.redis.Get(context.Background(), hex.EncodeToString(key[:])).Result()
-	return val, err
+func (c *Cache) Set(key string, value []byte, expiresIn time.Duration) (err error) {
+	status := c.redis.SetArgs(context.Background(), key, value, redis.SetArgs{
+		ExpireAt: time.Now().Add(expiresIn),
+	})
+	if status != nil {
+		return status.Err()
+	}
+	return nil
 }
 
-func (c *Cache) SetList(domain, user, repo, list string) error {
-	key := hash.GetHash(domain, user, repo)
-	return c.redis.SetArgs(context.Background(), hex.EncodeToString(key[:]), list, redis.SetArgs{
-		ExpireAt: time.Now().Add(time.Minute * 1),
-	}).Err()
-}
-
-func (c *Cache) GetSumObj(domain, trail string) (string, error) {
-	key := hash.GetMinioSumPath(domain, trail)
-	val, err := c.redis.Get(context.Background(), key).Result()
-	return val, err
-}
-
-func (c *Cache) SetSumObj(domain, trail string, sum []byte) error {
-	key := hash.GetMinioSumPath(domain, trail)
-	return c.redis.SetArgs(context.Background(), key, sum, redis.SetArgs{
-		ExpireAt: time.Now().Add(time.Minute * 10),
-	}).Err()
+func (c *Cache) Get(key string) ([]byte, bool, error) {
+	status := c.redis.Get(context.Background(), key)
+	if status.Err() != nil {
+		return nil, false, status.Err()
+	}
+	bytes, err := status.Bytes()
+	if err != nil {
+		return nil, false, err
+	}
+	return bytes, true, nil
 }

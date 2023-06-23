@@ -189,10 +189,10 @@ func RefreshIndex(db *database.Database, refreshStart time.Time) {
 				zap.S().Errorf("Error parsing m path: %s", m.Path)
 				continue
 			}
-			domain := matches[1]
+			uri := matches[1]
 			moduleName := matches[2]
 			workerChan <- workload{
-				Domain:     domain,
+				Domain:     uri,
 				ModuleName: moduleName,
 				Version:    m.Version,
 			}
@@ -203,6 +203,6 @@ func RefreshIndex(db *database.Database, refreshStart time.Time) {
 func worker(blob *blobstorage.Blobstore) {
 	for {
 		w := <-workerChan
-		routes.DownloadZip(w.Domain, w.ModuleName, w.Version, blob)
+		routes.
 	}
 }

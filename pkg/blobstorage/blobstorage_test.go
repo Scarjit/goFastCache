@@ -68,15 +68,15 @@ func TestBlobstore_PutObject(t *testing.T) {
 	testData := "test data"
 	var info minio.UploadInfo
 
-	// Test putString
-	info, err = blobstore.putString(testData, "testobject/a/b/c/d/putString.txt")
+	// Test PutString
+	info, err = blobstore.PutString(testData, "testobject/a/b/c/d/PutString.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
 	fmt.Printf("UploadInfo: %+v\n", info)
 
-	// Test putBytes
-	info, err = blobstore.putBytes([]byte(testData), "testobject/a/b/c/d/putBytes.txt")
+	// Test PutBytes
+	info, err = blobstore.PutBytes([]byte(testData), "testobject/a/b/c/d/PutBytes.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestBlobstore_GetObject(t *testing.T) {
 	}
 	testData := "test data for get object"
 	path := "testgetobject/a/b/c/d/getObject.txt"
-	_, err = blobstore.putString(testData, path)
+	_, err = blobstore.PutString(testData, path)
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestBlobstore_RemoveObject(t *testing.T) {
 	}
 	testData := "test data for remove object"
 	path := "testremoveobject/a/b/c/d/removeObject.txt"
-	_, err = blobstore.putString(testData, path)
+	_, err = blobstore.PutString(testData, path)
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -170,8 +170,8 @@ func TestBlobstore_NoChecksum(t *testing.T) {
 	testData := "test data"
 	var info minio.UploadInfo
 
-	// Test putString
-	info, err = blobstore.putString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
+	// Test PutString
+	info, err = blobstore.PutString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
@@ -204,8 +204,8 @@ func TestBlobstore_WrongChecksum(t *testing.T) {
 	testData := "test data"
 	var info minio.UploadInfo
 
-	// Test putString
-	info, err = blobstore.putString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
+	// Test PutString
+	info, err = blobstore.PutString(testData, "testshaobject/a/b/c/d/PutStringWrongHash.txt")
 	if err != nil {
 		t.Fatalf("Error putting object: %v", err)
 	}
